@@ -1,15 +1,33 @@
 import requests # responsible for getting web page conent
 from bs4 import BeautifulSoup # parsing the html code
 import pandas # to store in data in csv
+import argparse # argument parser in command line
+import connect
+
+# CSV saving function
+def saving_csv():
+    dataframes = pandas.DataFrame(scraped_info_list) # converting the scraped data to pandas dataframes
+    print("\n\tCreating csv file....")
+    dataframes.to_csv('product.csv') # conver dataframe to csv file
+
+
+parser = argparse.ArgumentParser() # object
+parser.add_argument("--page_num_max", help="Enter the number of pages to parse", type=int) # no of pages to parse
+parser.add_argument("--dbname", help="Enter the database name", type=str) # db name
+
+args = parser.parse_args()
 
 main_url = "https://webscraper.io/test-sites/e-commerce/static/computers/laptops?page="
 
-page_num_max = 3 # maximum number of pages
+# number of pages
+page_num_max = args.page_num_max
 scraped_info_list = [] # scraped data
 
+connect.connect(args.dbname) # create database
 
 for page_num in range(1,page_num_max):
     url = main_url + str(page_num)
+    print('\nGET request for: ' + url)
     req = requests.get(url) # get api request
 
     content = req.content # getting the content from url
@@ -37,9 +55,14 @@ for page_num in range(1,page_num_max):
         product_dic["ROM"] = ''.join(pro_desc_list[3]) # description - ROM
 
         scraped_info_list.append(product_dic) # list of products' dictionary
-
+        connect.insert_into_table(args.dbname, tuple(product_dic.values()))
 
         # print(pro_name,pro_price,pro_desc_list[:4],pro_review) 
 
-dataframes = pandas.DataFrame(scraped_info_list) # converting the scraped data to pandas dataframes
-dataframes.to_csv('product.csv') # conver dataframe to csv file
+
+
+
+# saving_csv()
+
+# printing the scraped data in terminal
+connect.get_product_info(args.dbname)
